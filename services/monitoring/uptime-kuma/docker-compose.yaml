@@ -1,13 +1,13 @@
 services:
   uptime-kuma:
     image: louislam/uptime-kuma:2
-    user: "1000:100"
+    user: "1000:1000"
+    group_add:
+      - "982" # Allows uptime kuma to see other containers
     cap_add:
       - NET_RAW # Allows non root ICMP pinging
     container_name: uptime-kuma
     restart: unless-stopped
-    ports:
-      - "3001:3001"
     volumes:
       # Persistent storage on 4TB HDD
       - /mnt/hdd/docker-volumes/monitoring/uptime-kuma:/app/data
@@ -27,3 +27,10 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - default
+      - auth-net
+
+networks:
+  auth-net:
+    external: tru
