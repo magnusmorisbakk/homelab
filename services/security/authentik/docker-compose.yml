@@ -43,6 +43,9 @@ services:
     volumes:
       - /mnt/hdd/docker-volumes/security/authentik/server/data:/data
       - /mnt/hdd/docker-volumes/security/authentik/server/custom-templates:/templates
+    networks:
+      - default
+      - auth-net
 
   worker:
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.8.3}
@@ -71,3 +74,7 @@ services:
 volumes:
   database:
     driver: local
+
+networks:
+  auth-net:
+    external: true
