@@ -1,0 +1,73 @@
+services:
+  postgresql:
+    image: docker.io/library/postgres:16-alpine
+    container_name: authentik_postgresql
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${PG_DB:-authentik}
+      POSTGRES_PASSWORD: ${PG_PASS:?database password required}
+      POSTGRES_USER: ${PG_USER:-authentik}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}
+      interval: 30s
+      retries: 5
+      start_period: 20s
+      timeout: 5s
+    volumes:
+      - /mnt/hdd/docker-volumes/security/authentik/postgresql:/var/lib/postgresql/data
+
+  server:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.8.3}
+    container_name: authentik_server
+    command: server
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
+    ports:
+      - ${COMPOSE_PORT_HTTP:-9001}:9000
+      - ${COMPOSE_PORT_HTTPS:-9443}:9443
+    shm_size: 512mb
+    volumes:
+      - /mnt/hdd/docker-volumes/security/authentik/server/data:/data
+      - /mnt/hdd/docker-volumes/security/authentik/server/custom-templates:/templates
+
+  worker:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.8.3}
+    container_name: authentik_worker
+    command: worker
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
+    shm_size: 512mb
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/hdd/docker-volumes/security/authentik/worker/data:/data
+      - /mnt/hdd/docker-volumes/security/authentik/worker/certs:/certs
+      - /mnt/hdd/docker-volumes/security/authentik/worker/custom-templates:/templates
+
+volumes:
+  database:
+    driver: local
