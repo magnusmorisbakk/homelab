@@ -1,6 +1,6 @@
 #!/bin/bash
 
-STACKS=("monitoring" "game-servers" "moriscribe" "utilities")
+STACKS=("monitoring" "game-servers" "moriscribe" "utilities" "security")
 
 run_stack() {
     local stack="$1"
